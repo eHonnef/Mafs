@@ -15,6 +15,10 @@
 			"**/build": true,
 			"**/LICENSE": true,
 			"**/Doxyfile.in": true
+		},
+		"files.associations": {
+			"itens_rp": "plaintext",
+			"stdexcept": "cpp"
 		}
 	}
 }
