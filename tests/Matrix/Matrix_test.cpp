@@ -1,5 +1,5 @@
-#include "doctest/doctest.h"
-#include "Matrix/Matrix.cc"
+#include <doctest/doctest.h>
+#include <mafs/Matrix/Matrix.cc>
 
 TEST_CASE("Matrix to string/matrix name") {
   Matrix<int> a(5, 8);

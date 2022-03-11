@@ -1,5 +1,5 @@
-#include "doctest/doctest.h"
-#include "Matrix/basic_op.cc"
+#include <doctest/doctest.h>
+#include <mafs/Matrix/basic_op.cc>
 
 typedef basic_op OP;
 
