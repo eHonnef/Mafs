@@ -13,10 +13,14 @@ cmake_minimum_required(VERSION 3.14)
 # Version numbers are available by including "Config.h" in
 # the source. See Config.h.in for some more details.
 project(
-  mafs            # Project name
+  Mafs            # Project name
   VERSION 1.0     # Project version
   LANGUAGES CXX   # Project language
 )
+
+SET(CXX_STANDARD_REQUIRED ON)
+SET(CMAKE_CXX_EXTENSIONS ON)
+SET(CMAKE_CXX_STANDARD 20)
 
 # Check if this is the main file or a subproject
 set(MAIN_PROJECT OFF)
@@ -59,21 +63,19 @@ find_lto(CXX)
 #                         Locate files <Change>
 # --------------------------------------------------------------------------------
 # All .cpp files in src/
-if (NOT SINGLE_HEADER)
-  set(SOURCES
-    src/example.cpp
-  )
-endif()
+# if (NOT SINGLE_HEADER)
+#   set(SOURCES
+#     src/Matrix/MatrixBase.cpp
+#     src/Matrix/Matrix.cpp
+#   )
+# endif()
 # You can change for a recursive way with glob.
 # Note: globbing sources is considered bad practice as CMake's generators may not detect new files
 # automatically. Keep that in mind when changing files, or explicitly mention them here.
 # file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 
 # file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h")
-set(HEADERS
-  "include/mafs/Matrix/Matrix.cc"
-  "include/mafs/Matrix/basic_op.cc"
-)
+file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp")
 # --------------------------------------------------------------------------------
 #                            Build!
 # --------------------------------------------------------------------------------
@@ -117,7 +119,9 @@ endif()
 # --------------------------------------------------------------------------------
 #                            If this is the main project
 # --------------------------------------------------------------------------------
+# SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20")
 if (MAIN_PROJECT)
+
   # There's also (probably) doctests within the library, so we need to see this as well.
   if(ENABLE_DOCTESTS)
     if (SINGLE_HEADER)
@@ -149,7 +153,6 @@ if (MAIN_PROJECT)
   target_link_libraries(main PRIVATE ${PROJECT_NAME} ${lst_external})
   target_set_warnings(main ENABLE ALL AS_ERROR ALL DISABLE Annoying) # Set warnings (if needed).
   target_enable_lto(main optimized)  # enable link-time-optimization if available for non-debug configurations
-
   # Insert here the other main file
   list(APPEND target_files main)
 endif()
@@ -160,10 +163,11 @@ endif()
 list(APPEND target_files ${PROJECT_NAME})
 
 # Set the properties you require, e.g. what C++ standard to use. Here applied to library and main (change as needed).
-set_target_properties(
-  ${target_files}
-    PROPERTIES
-      CXX_STANDARD 17
-      CXX_STANDARD_REQUIRED YES
-      CXX_EXTENSIONS NO
-)
+# set_target_properties(
+#   ${target_files}
+#     PROPERTIES
+#       CXX_STANDARD 20
+#       CXX_STANDARD_REQUIRED ON
+#       CXX_EXTENSIONS ON
+#       CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20"
+# )
