@@ -4,12 +4,32 @@
 
 #define private public
 #define protected public
-#include <Mafs/Matrix/MatrixBase.hpp>
+#include <Mafs/Matrix/Matrix.hpp>
+#define UNUSED(x) (void)(x)
 
 template <typename T, size_t Rows_, size_t Cols_, size_t Options_>
-void RangeFill(Mafs::Internal::MatrixBase<T, Rows_, Cols_, Options_> &Matrix) {
-  for (size_t i = 0; i < Matrix.m_Data.Size(); ++i)
-    Matrix.m_Data.Data()[i] = i;
+void RangeFill(Mafs::Matrix<T, Rows_, Cols_, Options_> &Matrix) {
+  for (size_t i = 0; i < Matrix.m_Container.Size(); ++i)
+    Matrix.m_Container.Data()[i] = i;
+}
+
+TEST_CASE("Basic Case, instantiate") {
+  Mafs::Matrix<int, 1, 1, 1> MtxStatic;
+  Mafs::Matrix<int, 0, 0, 1> MtxDyn(3, 5);
+
+  // To avoid warnings
+  UNUSED(MtxStatic);
+  UNUSED(MtxDyn);
+}
+
+TEST_CASE("Change matrix data") {
+  Mafs::Matrix<int, 0, 0, 1> MtxDyn(3, 5);
+
+  MtxDyn(2, 1) = 3;
+  MtxDyn.At(1, 2) = 3;
+
+  REQUIRE(MtxDyn.At(2, 1) == 3);
+  REQUIRE(MtxDyn(1, 2) == 3);
 }
 
 TEST_CASE("Container static initialization test") {
@@ -74,8 +94,8 @@ TEST_CASE("Container dynamic resize") {
 }
 
 TEST_CASE("MatrixBase options") {
-  Mafs::Internal::MatrixBase<int, 1, 1, Mafs::MtxRowMajor> MtxRow;
-  Mafs::Internal::MatrixBase<int, 1, 1, Mafs::MtxColMajor> MtxCol;
+  Mafs::Matrix<int, 1, 1, Mafs::MtxRowMajor> MtxRow;
+  Mafs::Matrix<int, 1, 1, Mafs::MtxColMajor> MtxCol;
 
   REQUIRE(AreEnumsEqual(MtxRow.m_MtxStorage, Mafs::MtxRowMajor));
   REQUIRE(AreEnumsEqual(MtxCol.m_MtxStorage, Mafs::MtxColMajor));
@@ -83,25 +103,24 @@ TEST_CASE("MatrixBase options") {
 
 TEST_CASE("MatrixBase dynamic instantiation") {
   constexpr int Options = Mafs::MtxRowMajor;
-  Mafs::Internal::MatrixBase<int, Mafs::MtxDynamic, Mafs::MtxDynamic, Options> Matrix(3, 5);
+  Mafs::Matrix<int, Mafs::MtxDynamic, Mafs::MtxDynamic, Options> Matrix(3, 5);
   Matrix.Fill(3);
 
-  for (size_t i = 0; i < Matrix.m_Data.Size(); ++i)
-    REQUIRE(Matrix.m_Data.Data()[i] == 3);
+  for (size_t i = 0; i < Matrix.m_Container.Size(); ++i)
+    REQUIRE(Matrix.m_Container.Data()[i] == 3);
 }
 
 TEST_CASE("MatrixBase static instantiation") {
   constexpr int Options = Mafs::MtxRowMajor;
-  Mafs::Internal::MatrixBase<int, 3, 5, Options> Matrix;
+  Mafs::Matrix<int, 3, 5, Options> Matrix;
   Matrix.Fill(3);
 
-  for (size_t i = 0; i < Matrix.m_Data.Size(); ++i)
-    REQUIRE(Matrix.m_Data.Data()[i] == 3);
+  for (size_t i = 0; i < Matrix.m_Container.Size(); ++i)
+    REQUIRE(Matrix.m_Container.Data()[i] == 3);
 }
 
 TEST_CASE("MatrixBase row major indexing") {
-  Mafs::Internal::MatrixBase<int, Mafs::MtxDynamic, Mafs::MtxDynamic, Mafs::MtxRowMajor> Matrix(2,
-                                                                                                3);
+  Mafs::Matrix<int, Mafs::MtxDynamic, Mafs::MtxDynamic, Mafs::MtxRowMajor> Matrix(2, 3);
   RangeFill(Matrix);
 
   // Expected:
@@ -117,7 +136,7 @@ TEST_CASE("MatrixBase row major indexing") {
 }
 
 TEST_CASE("MatrixBase col major indexing") {
-  Mafs::Internal::MatrixBase<int, 2, 3, Mafs::MtxColMajor> Matrix;
+  Mafs::Matrix<int, 2, 3, Mafs::MtxColMajor> Matrix;
   RangeFill(Matrix);
 
   // Expected
@@ -133,7 +152,7 @@ TEST_CASE("MatrixBase col major indexing") {
 }
 
 TEST_CASE("MatrixBase row swap (row major)") {
-  Mafs::Internal::MatrixBase<int, 3, 5, Mafs::MtxRowMajor> Matrix;
+  Mafs::Matrix<int, 3, 5, Mafs::MtxRowMajor> Matrix;
   RangeFill(Matrix);
 
   // Matrix Initial:
@@ -195,7 +214,7 @@ TEST_CASE("MatrixBase row swap (row major)") {
 
 TEST_CASE("MatrixBase row swap (col major)") {
   constexpr int nType = Mafs::MtxDynamic;
-  Mafs::Internal::MatrixBase<int, nType, nType, Mafs::MtxColMajor> Matrix(3, 5);
+  Mafs::Matrix<int, nType, nType, Mafs::MtxColMajor> Matrix(3, 5);
   RangeFill(Matrix);
 
   // Matrix Initial:
@@ -256,7 +275,7 @@ TEST_CASE("MatrixBase row swap (col major)") {
 }
 
 TEST_CASE("MatrixBase col swap (row major)") {
-  Mafs::Internal::MatrixBase<int, 3, 5, Mafs::MtxRowMajor> Matrix;
+  Mafs::Matrix<int, 3, 5, Mafs::MtxRowMajor> Matrix;
   RangeFill(Matrix);
 
   // Matrix Initial:
@@ -293,7 +312,7 @@ TEST_CASE("MatrixBase col swap (row major)") {
 
 TEST_CASE("MatrixBase col swap (col major)") {
   constexpr int nType = Mafs::MtxDynamic;
-  Mafs::Internal::MatrixBase<int, nType, nType, Mafs::MtxColMajor> Matrix(3, 5);
+  Mafs::Matrix<int, nType, nType, Mafs::MtxColMajor> Matrix(3, 5);
   RangeFill(Matrix);
 
   // Matrix Initial:

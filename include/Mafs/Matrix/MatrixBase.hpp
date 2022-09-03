@@ -1,106 +1,30 @@
 #ifndef MAFS_MATRIXBASE_H
 #define MAFS_MATRIXBASE_H
 
+#include <Mafs/Matrix/MatrixContainer.hpp>
 #include <Mafs/Utils/Utils.hpp>
-#include <exception>
-// #include <format>
-#include <fmt/core.h> //@todo: remove after gcc implements format
+#include <fmt/core.h>
 
 namespace Mafs {
 
+/**
+ * Matrix options bitmask.
+ * Use as follow: int Options = MtxColMajor
+ *
+ * The default value is:
+ * MtxDefaultOptions = MtxRowMajor
+ */
 enum MtxOptions {
-  MtxRowMajor = 0, // Default
-  MtxColMajor = 1,
+  //@todo melhorar a forma de fazer esse bitmask
+  // Matrix storage type, use only one
+  MtxRowMajor = 0, // Stores the matrix as row major.
+  MtxColMajor = 1, // Stores the matrix as col major.
+  // Default options for the Matrix (RowMajor).
+  MtxDefaultOptions = (0 | MtxRowMajor),
 };
-enum MtxType { MtxDynamic };
 
 namespace Internal {
-template <typename T, size_t Rows_, size_t Cols_> class Container;
-
-/**
- * Fixed size container.
- *
- * The size is defined in the template parameter.
- * There is no bound check, this class is suppose to be used by the MatrixBase and Matrix classes.
- */
-template <typename T, size_t Rows_, size_t Cols_> class Container {
-protected:
-  enum { m_nRows = Rows_, m_nCols = Cols_, m_nSize = Rows_ * Cols_ };
-  T m_Array[m_nRows * m_nCols];
-  T m_SwapArray[m_nRows > m_nCols ? m_nRows : m_nCols];
-
-public:
-  Container() = default;
-
-  T &operator[](size_t nIndex) { return m_Array[nIndex]; }
-  T &operator[](size_t nIndex) const { return m_Array[nIndex]; }
-
-  inline size_t Size() const { return m_nSize; }
-  inline size_t RowCount() const { return m_nRows; }
-  inline size_t ColCount() const { return m_nCols; }
-  inline T *Data() { return m_Array; }
-  inline T *Swap() { return m_SwapArray; }
-};
-
-/**
- * Dynamic size container.
- *
- * In the Rows_/Cols_ parameter pass zero or Mtx::Dynamic.
- * There is no bound check, this class is suppose to be used by the MatrixBase and Matrix classes.
- */
-template <typename T> class Container<T, MtxDynamic, MtxDynamic> {
-protected:
-  T *m_Array = nullptr;
-  T *m_SwapArray = nullptr;
-
-  size_t m_nRows = 0;
-  size_t m_nCols = 0;
-  size_t m_nSize = 0;
-
-  void Dealloc() {
-    if (m_Array != nullptr) {
-      delete[] m_Array;
-      delete[] m_SwapArray;
-
-      m_Array = nullptr;
-      m_SwapArray = nullptr;
-    }
-  }
-
-  void Alloc() {
-    if (m_Array != nullptr)
-      Dealloc();
-    m_Array = new T[m_nSize];
-    m_SwapArray = new T[m_nRows > m_nCols ? m_nRows : m_nCols];
-  }
-
-public:
-  Container() = default;
-  Container(size_t nRows, size_t nCols) { Resize(nRows, nCols); }
-
-  T &operator[](size_t nIndex) { return m_Array[nIndex]; }
-  T &operator[](size_t nIndex) const { return m_Array[nIndex]; }
-
-  inline size_t Size() const { return m_nSize; }
-  inline size_t RowCount() const { return m_nRows; }
-  inline size_t ColCount() const { return m_nCols; }
-  inline T *Data() { return m_Array; }
-  inline T *Swap() { return m_SwapArray; }
-
-  void Resize(size_t nRows, size_t nCols) {
-    if (nRows == m_nRows && nCols == m_nCols)
-      return; // Array set to same size.
-    else if (nRows <= 0 || nCols <= 0)
-      return Dealloc(); // Array set to zero, only dealloc.
-    else {
-      Dealloc();
-      m_nRows = nRows;
-      m_nCols = nCols;
-      m_nSize = nRows * nCols;
-      Alloc();
-    }
-  }
-};
+template <typename T> struct MatrixTraits;
 
 /**
  * This is the base class for the Matrix class.
@@ -108,14 +32,16 @@ public:
  * It is used in the Operations static class.
  * It contains the basic functionality of a matrix.
  */
-template <typename T, size_t Rows_, size_t Cols_, size_t Options_> class MatrixBase {
+template <typename Derived> class MatrixBase {
 protected:
-  enum {
-    m_bIsDynamic = (Rows_ == MtxDynamic) || (Cols_ == MtxDynamic),
-    m_MtxStorage = Options_ & 0x1
-  };
+  typedef typename MatrixTraits<Derived>::Type Type;
+  Container<Type, MatrixTraits<Derived>::Rows, MatrixTraits<Derived>::Cols> m_Container;
 
-  Container<T, Rows_, Cols_> m_Data;
+  enum {
+    m_bIsDynamic = (AreEnumsEqual<MatrixTraits<Derived>::Rows, MtxDynamic>() ||
+                    AreEnumsEqual<MatrixTraits<Derived>::Cols, MtxDynamic>()),
+    m_MtxStorage = MatrixTraits<Derived>::Options & 0x1
+  };
 
   /**
    * Converts a matrix indexing (eg.: Matrix[1][2]) to an array index depending if it is Row or Col
@@ -123,16 +49,16 @@ protected:
    */
   inline size_t Index(size_t nRow, size_t nCol) const {
     if constexpr (AreEnumsEqual<m_MtxStorage, MtxColMajor>())
-      return nCol * m_Data.RowCount() + nRow;
+      return nCol * m_Container.RowCount() + nRow;
     else
-      return nRow * m_Data.ColCount() + nCol;
+      return nRow * m_Container.ColCount() + nCol;
   }
 
   /**
    * Checks if the given index is in the container bounds, throw exception if not.
    */
   inline void BoundCheck(size_t nIndex) {
-    if (nIndex >= m_Data.Size())
+    if (nIndex >= m_Container.Size())
       throw std::out_of_range(fmt::format("Index {} is out of range", nIndex));
   }
 
@@ -140,7 +66,7 @@ protected:
    * Checks if the given row/col is in the container bounds, throw exception if not.
    */
   inline void BoundCheck(size_t nRow, size_t nCol) {
-    if (nRow >= m_Data.RowCount() || nCol >= m_Data.ColCount())
+    if (nRow >= m_Container.RowCount() || nCol >= m_Container.ColCount())
       throw std::out_of_range(fmt::format("Index [{}][{}] is out of range", nRow, nCol));
   }
 
@@ -152,14 +78,16 @@ protected:
    */
   void GenericMemSwap(size_t lIndex, size_t rIndex, size_t nOffset) {
     // Save RIndex to swap.
-    std::memcpy(m_Data.Swap(), m_Data.Data() + (rIndex * nOffset), sizeof(T) * nOffset);
+    std::memcpy(m_Container.Swap(), m_Container.Data() + (rIndex * nOffset),
+                sizeof(Type) * nOffset);
 
     // Copy LIndex to RIndex
-    std::memcpy(m_Data.Data() + (rIndex * nOffset), m_Data.Data() + (lIndex * nOffset),
-                sizeof(T) * nOffset);
+    std::memcpy(m_Container.Data() + (rIndex * nOffset), m_Container.Data() + (lIndex * nOffset),
+                sizeof(Type) * nOffset);
 
     // Copy swap to LIndex location
-    std::memcpy(m_Data.Data() + (lIndex * nOffset), m_Data.Swap(), sizeof(T) * nOffset);
+    std::memcpy(m_Container.Data() + (lIndex * nOffset), m_Container.Swap(),
+                sizeof(Type) * nOffset);
   }
 
   /**
@@ -169,7 +97,7 @@ protected:
    * @see SwapRows
    */
   void GenericLoopSwap(size_t lIndex, size_t rIndex, size_t nOffset) {
-    T TmpValue;
+    Type TmpValue;
     size_t aIndex, bIndex;
     for (size_t i = 0; i < nOffset; ++i) {
       if constexpr (AreEnumsEqual<m_MtxStorage, MtxRowMajor>()) {
@@ -179,9 +107,9 @@ protected:
         aIndex = Index(lIndex, i);
         bIndex = Index(rIndex, i);
       }
-      TmpValue = m_Data[bIndex];
-      m_Data[bIndex] = m_Data[aIndex];
-      m_Data[aIndex] = TmpValue;
+      TmpValue = m_Container[bIndex];
+      m_Container[bIndex] = m_Container[aIndex];
+      m_Container[aIndex] = TmpValue;
     }
   }
 
@@ -205,7 +133,7 @@ public:
   MatrixBase(size_t nRows, size_t nCols) {
     static_assert(m_bIsDynamic, "MatrixBase is static. You are trying to build a dynamic matrix, "
                                 "use MtxDynamic on Rows_/Cols_ template params");
-    m_Data.Resize(nRows, nCols);
+    m_Container.Resize(nRows, nCols);
   }
 
   /**
@@ -218,7 +146,7 @@ public:
    * Usage: Matrix(row, col);
    * @see At
    */
-  T &operator()(size_t nRow, size_t nCol) { return At(nRow, nCol); }
+  Type &operator()(size_t nRow, size_t nCol) { return At(nRow, nCol); }
 
   /**
    * Access an element inside the matrix.
@@ -230,7 +158,7 @@ public:
    * Usage: Matrix(row, col);
    * @see At
    */
-  T &operator()(size_t nRow, size_t nCol) const { return At(nRow, nCol); }
+  Type &operator()(size_t nRow, size_t nCol) const { return At(nRow, nCol); }
 
   /**
    * Access an element inside the matrix.
@@ -239,10 +167,20 @@ public:
    * matrix, throwing an out_of_range exception if it is not (i.e., if [nRow][nCol] is greater than
    * its size).
    */
-  T &At(size_t nRow, size_t nCol) {
+  Type &At(size_t nRow, size_t nCol) {
     BoundCheck(nRow, nCol);
-    return m_Data[Index(nRow, nCol)];
+    return m_Container[Index(nRow, nCol)];
   }
+
+  /**
+   * Returns the number of rows of this matrix.
+   */
+  inline size_t RowCount() const { return m_Container.RowCount(); }
+
+  /**
+   * Returns the number of rows of this matrix.
+   */
+  inline size_t ColCount() const { return m_Container.ColCount(); }
 
   /**
    * Access an element inside the matrix.
@@ -251,14 +189,14 @@ public:
    * matrix, throwing an out_of_range exception if it is not (i.e., if [nRow][nCol] is greater than
    * its size).
    */
-  T &At(size_t nRow, size_t nCol) const { return At(nRow, nCol); }
+  Type &At(size_t nRow, size_t nCol) const { return At(nRow, nCol); }
 
   /**
    * Fill the matrix with Value.
    */
-  void Fill(const T &Value) {
-    for (size_t i = 0; i < m_Data.Size(); ++i)
-      m_Data[i] = Value;
+  void Fill(const Type &Value) {
+    for (size_t i = 0; i < m_Container.Size(); ++i)
+      m_Container[i] = Value;
   }
 
   /**
@@ -268,9 +206,9 @@ public:
    */
   void SwapRows(size_t aRow, size_t bRow) {
     if constexpr (AreEnumsEqual<m_MtxStorage, MtxRowMajor>())
-      GenericMemSwap(aRow, bRow, m_Data.ColCount());
+      GenericMemSwap(aRow, bRow, m_Container.ColCount());
     else
-      GenericLoopSwap(aRow, bRow, m_Data.ColCount());
+      GenericLoopSwap(aRow, bRow, m_Container.ColCount());
   }
 
   /**
@@ -280,9 +218,9 @@ public:
    */
   void SwapCols(size_t aCol, size_t bCol) {
     if constexpr (AreEnumsEqual<m_MtxStorage, MtxColMajor>())
-      GenericMemSwap(aCol, bCol, m_Data.RowCount());
+      GenericMemSwap(aCol, bCol, m_Container.RowCount());
     else
-      GenericLoopSwap(aCol, bCol, m_Data.RowCount());
+      GenericLoopSwap(aCol, bCol, m_Container.RowCount());
   }
 
   /**
@@ -309,19 +247,17 @@ public:
 
     // @todo: improve this (maybe put on a function, use memmove, idk... just improve it)
     std::string strData = "";
-    for (size_t i = 0; i < m_Data.RowCount(); ++i) {
-      for (size_t j = 0; j < m_Data.ColCount(); ++j)
-        strData += fmt::format("{} ", m_Data[Index(i, j)]);
+    for (size_t i = 0; i < m_Container.RowCount(); ++i) {
+      for (size_t j = 0; j < m_Container.ColCount(); ++j)
+        strData += fmt::format("{} ", m_Container[Index(i, j)]);
       strData += "\n";
     }
 
-    return fmt::format("Matrix<{}>[{}][{}] // {}\n{}\n", typeid(T).name(), m_Data.RowCount(),
-                       m_Data.ColCount(), strOptions, strData);
+    return fmt::format("Matrix<{}>[{}][{}] // {}\n{}\n", typeid(Type).name(),
+                       m_Container.RowCount(), m_Container.ColCount(), strOptions, strData);
   }
 };
+}; // namespace Internal
+}; // namespace Mafs
 
-// template <typename T> using MatrixBaseX = MatrixBase<T, MtxDynamic, MtxDynamic>;
-
-};     // namespace Internal
-};     // namespace Mafs
 #endif // MAFS_MATRIXBASE_H

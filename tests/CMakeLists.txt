@@ -4,6 +4,7 @@ cmake_minimum_required(VERSION 3.14)
 set(TESTFILES        # All .cpp files in tests/
   main.cpp
   Matrix/MatrixBaseTest.cpp
+  Matrix/MatrixTest.cpp
   # Matrix/Basic_op_test.cpp
 )
 
