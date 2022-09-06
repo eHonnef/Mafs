@@ -8,7 +8,7 @@
 namespace Mafs {
 
 /**
- * Matrix options bitmask.
+ * @brief Matrix options bitmask.
  * Use as follow: int Options = MtxColMajor
  *
  * The default value is:
@@ -27,16 +27,22 @@ namespace Internal {
 template <typename T> struct MatrixTraits;
 
 /**
- * This is the base class for the Matrix class.
+ * @brief This is the base class for the Matrix class.
  *
  * It is used in the Operations static class.
  * It contains the basic functionality of a matrix.
+ *
+ * @tparam Derived
  */
 template <typename Derived> class MatrixBase {
 protected:
   typedef typename MatrixTraits<Derived>::Type Type;
   Container<Type, MatrixTraits<Derived>::Rows, MatrixTraits<Derived>::Cols> m_Container;
 
+  /**
+   * @brief Matrix configurations
+   *
+   */
   enum {
     m_bIsDynamic = (AreEnumsEqual<MatrixTraits<Derived>::Rows, MtxDynamic>() ||
                     AreEnumsEqual<MatrixTraits<Derived>::Cols, MtxDynamic>()),
@@ -44,8 +50,12 @@ protected:
   };
 
   /**
-   * Converts a matrix indexing (eg.: Matrix[1][2]) to an array index depending if it is Row or Col
-   * major.
+   * @brief Converts a matrix indexing (eg.: Matrix[1][2]) to an array index depending if it is Row
+   * or Col major.
+   *
+   * @param nRow
+   * @param nCol
+   * @return size_t
    */
   inline size_t Index(size_t nRow, size_t nCol) const {
     if constexpr (AreEnumsEqual<m_MtxStorage, MtxColMajor>())
@@ -55,7 +65,9 @@ protected:
   }
 
   /**
-   * Checks if the given index is in the container bounds, throw exception if not.
+   * @brief Checks if the given index is in the container bounds, throw exception if not.
+   *
+   * @param nIndex
    */
   inline void BoundCheck(size_t nIndex) {
     if (nIndex >= m_Container.Size())
@@ -63,7 +75,10 @@ protected:
   }
 
   /**
-   * Checks if the given row/col is in the container bounds, throw exception if not.
+   * @brief Checks if the given row/col is in the container bounds, throw exception if not.
+   *
+   * @param nRow
+   * @param nCol
    */
   inline void BoundCheck(size_t nRow, size_t nCol) {
     if (nRow >= m_Container.RowCount() || nCol >= m_Container.ColCount())
@@ -71,10 +86,14 @@ protected:
   }
 
   /**
-   * Swaps row/col using std::mempcy.
+   * @brief Swaps row/col using std::mempcy.
    * It is used when the values in memory are contiguous.
+   *
    * @see SwapCols
    * @see SwapRows
+   * @param lIndex
+   * @param rIndex
+   * @param nOffset
    */
   void GenericMemSwap(size_t lIndex, size_t rIndex, size_t nOffset) {
     // Save RIndex to swap.
@@ -91,10 +110,14 @@ protected:
   }
 
   /**
-   * Swaps row/col using a loop.
+   * @brief Swaps row/col using a loop.
    * It is used when the values in memory are separeted.
+   *
    * @see SwapCols
    * @see SwapRows
+   * @param lIndex
+   * @param rIndex
+   * @param nOffset
    */
   void GenericLoopSwap(size_t lIndex, size_t rIndex, size_t nOffset) {
     Type TmpValue;
@@ -115,20 +138,24 @@ protected:
 
 public:
   /**
-   * Default constructor.
+   * @brief Default constructor.
    * It can build either a static or dynamic matrix, it depends on the template parameter.
    *
    * Static = you passed the _Rows/_Cols template parameter.
    * Dynamic = you passed MtxDynamic (or 0) as _Rows/_Cols template parameter.
+   *
    */
   MatrixBase() = default;
 
   /**
-   * Construct a dynamic matrix.
+   * @brief Construct a dynamic matrix.
    * You cannot use this constructor if the matrix is static.
    *
    * Static = you passed the _Rows/_Cols template parameter.
    * Dynamic = you passed MtxDynamic (or 0) as _Rows/_Cols template parameter.
+   *
+   * @param nRows
+   * @param nCols
    */
   MatrixBase(size_t nRows, size_t nCols) {
     static_assert(m_bIsDynamic, "MatrixBase is static. You are trying to build a dynamic matrix, "
@@ -137,35 +164,58 @@ public:
   }
 
   /**
-   * Access an element inside the matrix.
+   * @brief Copy constructor
+   *
+   * @param CopiedMatrix
+   */
+  MatrixBase(const MatrixBase &CopiedMatrix) {
+    if constexpr (m_bIsDynamic)
+      m_Container.Resize(CopiedMatrix.RowCount(), CopiedMatrix.ColCount());
+
+    std::memcpy(m_Container.Data(), CopiedMatrix.m_Container.Data(),
+                sizeof(Type) * CopiedMatrix.m_Container.Size());
+  }
+
+  /**
+   * @brief Access an element inside the matrix.
    * Returns a reference to the element at position [nRow][nCol] in the matrix.
    * The function checks whether [nRow][nCol] is within the bounds of valid elements in the
    * matrix, throwing an out_of_range exception if it is not (i.e., if [nRow][nCol] is greater than
    * its size).
-   *
    * Usage: Matrix(row, col);
-   * @see At
+   *
+   * @see At()
+   * @param nRow
+   * @param nCol
+   * @return Type&
    */
   Type &operator()(size_t nRow, size_t nCol) { return At(nRow, nCol); }
 
   /**
-   * Access an element inside the matrix.
+   * @brief Access an element inside the matrix.
    * Returns a const reference to the element at position [nRow][nCol] in the matrix.
    * The function checks whether [nRow][nCol] is within the bounds of valid elements in the
    * matrix, throwing an out_of_range exception if it is not (i.e., if [nRow][nCol] is greater than
    * its size).
-   *
    * Usage: Matrix(row, col);
-   * @see At
+   *
+   * @see At()
+   * @param nRow
+   * @param nCol
+   * @return Type&
    */
-  Type &operator()(size_t nRow, size_t nCol) const { return At(nRow, nCol); }
+  const Type &operator()(size_t nRow, size_t nCol) const { return At(nRow, nCol); }
 
   /**
-   * Access an element inside the matrix.
+   * @brief Access an element inside the matrix.
    * Returns a reference to the element at position [nRow][nCol] in the matrix.
    * The function checks whether [nRow][nCol] is within the bounds of valid elements in the
    * matrix, throwing an out_of_range exception if it is not (i.e., if [nRow][nCol] is greater than
    * its size).
+   *
+   * @param nRow
+   * @param nCol
+   * @return Type&
    */
   Type &At(size_t nRow, size_t nCol) {
     BoundCheck(nRow, nCol);
@@ -173,26 +223,39 @@ public:
   }
 
   /**
-   * Returns the number of rows of this matrix.
-   */
-  inline size_t RowCount() const { return m_Container.RowCount(); }
-
-  /**
-   * Returns the number of rows of this matrix.
-   */
-  inline size_t ColCount() const { return m_Container.ColCount(); }
-
-  /**
-   * Access an element inside the matrix.
+   * @brief Access an element inside the matrix.
    * Returns a constant reference to the element at position [nRow][nCol] in the matrix.
    * The function checks whether [nRow][nCol] is within the bounds of valid elements in the
    * matrix, throwing an out_of_range exception if it is not (i.e., if [nRow][nCol] is greater than
    * its size).
+   *
+   * @param nRow
+   * @param nCol
+   * @return Type&
    */
-  Type &At(size_t nRow, size_t nCol) const { return At(nRow, nCol); }
+  const Type &At(size_t nRow, size_t nCol) const {
+    // BoundCheck(nRow, nCol);
+    return m_Container[Index(nRow, nCol)];
+  }
 
   /**
-   * Fill the matrix with Value.
+   * @brief Returns the number of rows of this matrix.
+   *
+   * @return size_t
+   */
+  inline size_t RowCount() const { return m_Container.RowCount(); }
+
+  /**
+   * @brief Returns the number of columns of this matrix.
+   *
+   * @return size_t
+   */
+  inline size_t ColCount() const { return m_Container.ColCount(); }
+
+  /**
+   * @brief Fill the matrix with Value.
+   *
+   * @param Value
    */
   void Fill(const Type &Value) {
     for (size_t i = 0; i < m_Container.Size(); ++i)
@@ -200,9 +263,12 @@ public:
   }
 
   /**
-   * Swap aRow with bRow, if it is contiguous it uses MemSwap, otherwise it'll use the loop swap.
-   * If you are swapping a row and the matrix is stored as row major, then the row values is stored
-   * side by side in memory.
+   * @brief Swap aRow with bRow, if it is contiguous it uses MemSwap, otherwise it'll use the loop
+   * swap. If you are swapping a row and the matrix is stored as row major, then the row values is
+   * stored side by side in memory.
+   *
+   * @param aRow
+   * @param bRow
    */
   void SwapRows(size_t aRow, size_t bRow) {
     if constexpr (AreEnumsEqual<m_MtxStorage, MtxRowMajor>())
@@ -212,9 +278,12 @@ public:
   }
 
   /**
-   * Swap aCol with bCol, if it is contiguous it uses MemSwap, otherwise it'll use the loop swap.
-   * If you are swapping a col and the matrix is stored as col major, then the col values is stored
-   * side by side in memory.
+   * @brief Swap aCol with bCol, if it is contiguous it uses MemSwap, otherwise it'll use the loop
+   * swap. If you are swapping a col and the matrix is stored as col major, then the col values is
+   * stored side by side in memory.
+   *
+   * @param aCol
+   * @param bCol
    */
   void SwapCols(size_t aCol, size_t bCol) {
     if constexpr (AreEnumsEqual<m_MtxStorage, MtxColMajor>())
@@ -224,13 +293,15 @@ public:
   }
 
   /**
-   * Puts the matrix infos and values to string.
+   * @brief Puts the matrix infos and values to string.
    * It'll print as follow:
    * Matrix<type>[rows][cols] // properties
    * a00 a01 ... a0n
    * a10 a11 ... a1n
    * ... ... ... ...
    * an0 an1 ... ann
+   *
+   * @return std::string
    */
   inline auto ToString() -> std::string {
     std::string strOptions = "";

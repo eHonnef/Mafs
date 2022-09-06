@@ -1,16 +1,37 @@
+/*********************************************************************************
+ * MatrixBaseTest.cpp
+ * It has tests for the matrix's structure itself.
+ *********************************************************************************/
+
 #include <doctest/doctest.h>
-#include <fmt/core.h>
-#include <iostream>
 
 #define private public
 #define protected public
 #include <Mafs/Matrix/Matrix.hpp>
+
 #define UNUSED(x) (void)(x)
 
 template <typename T, size_t Rows_, size_t Cols_, size_t Options_>
 void RangeFill(Mafs::Matrix<T, Rows_, Cols_, Options_> &Matrix) {
   for (size_t i = 0; i < Matrix.m_Container.Size(); ++i)
     Matrix.m_Container.Data()[i] = i;
+}
+
+template <typename T, size_t Rows_, size_t Cols_, size_t Options_>
+bool CheckIfEquals(Mafs::Matrix<T, Rows_, Cols_, Options_> &lMatrix,
+                   Mafs::Matrix<T, Rows_, Cols_, Options_> &rMatrix) {
+
+  // This function was created before the operator== were implemented.
+  // It is used to check if two matrices are equal.
+  if (lMatrix.RowCount() != rMatrix.RowCount() || lMatrix.ColCount() != rMatrix.ColCount())
+    return false;
+
+  for (size_t i = 0; i < rMatrix.RowCount(); ++i)
+    for (size_t j = 0; j < rMatrix.ColCount(); ++j)
+      if (rMatrix.At(i, j) != lMatrix.At(i, j))
+        return false;
+
+  return true;
 }
 
 TEST_CASE("Basic Case, instantiate") {
@@ -21,6 +42,22 @@ TEST_CASE("Basic Case, instantiate") {
   UNUSED(MtxStatic);
   UNUSED(MtxDyn);
 }
+
+TEST_CASE("Copy constructor") {
+  Mafs::Matrix<int, 3, 5, 1> MtxStatic;
+  RangeFill(MtxStatic);
+
+  Mafs::Matrix<int, 0, 0, 1> MtxDyn(3, 5);
+  RangeFill(MtxDyn);
+
+  Mafs::Matrix MtxDynCopy(MtxDyn);
+  CheckIfEquals(MtxDynCopy, MtxDyn);
+
+  Mafs::Matrix MtxStaticCopy(MtxStatic);
+  CheckIfEquals(MtxStaticCopy, MtxStatic);
+}
+
+TEST_CASE("Operator=") {}
 
 TEST_CASE("Change matrix data") {
   Mafs::Matrix<int, 0, 0, 1> MtxDyn(3, 5);

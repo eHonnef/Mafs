@@ -2,16 +2,31 @@
 #define MAFS_MATRIX_H
 
 #include <Mafs/Matrix/MatrixBase.hpp>
+#include <Mafs/Matrix/Operations/Operations.hpp>
 #include <string>
 
 namespace Mafs {
 template <typename T, size_t Rows_, size_t Cols_, size_t Options_>
 class Matrix : public Internal::MatrixBase<Matrix<T, Rows_, Cols_, Options_>> {
+private:
+  Internal::MatrixOperations<0> Operation; // @todo: remover daqui, fazer instância global (extern)
+
 public:
   Matrix() : Internal::MatrixBase<Matrix<T, Rows_, Cols_, Options_>>() {}
 
   Matrix(size_t nRows, size_t nCols)
       : Internal::MatrixBase<Matrix<T, Rows_, Cols_, Options_>>(nRows, nCols) {}
+
+  Matrix(const Matrix &CopiedMatrix)
+      : Internal::MatrixBase<Matrix<T, Rows_, Cols_, Options_>>(CopiedMatrix) {}
+
+  template <typename Derived>
+  Matrix(const Internal::MatrixBase<Derived> &Copy) : Internal::MatrixBase<Derived>(Copy) {}
+
+  template <typename U, size_t Rows__, size_t Cols__, size_t Options__>
+  Matrix operator+(const Matrix<U, Rows__, Cols__, Options__> &rMatrix) {
+    return Operation.Sum(*this, rMatrix);
+  }
 };
 
 template <typename T, size_t Rows_, size_t Cols_, size_t Options_>

@@ -14,10 +14,14 @@ namespace Internal {
 template <typename T, size_t Rows_, size_t Cols_> class Container;
 
 /**
- * Fixed size container.
+ * @brief Fixed size container.
  *
  * The size is defined in the template parameter.
  * There is no bound check, this class is suppose to be used by the MatrixBase and Matrix classes.
+ *
+ * @tparam T
+ * @tparam Rows_
+ * @tparam Cols_
  */
 template <typename T, size_t Rows_, size_t Cols_> class Container {
 protected:
@@ -35,20 +39,23 @@ public:
   Container() = default;
 
   T &operator[](size_t nIndex) { return m_Array[nIndex]; }
-  T &operator[](size_t nIndex) const { return m_Array[nIndex]; }
+  const T &operator[](size_t nIndex) const { return m_Array[nIndex]; }
 
   inline size_t Size() const { return m_nSize; }
   inline size_t RowCount() const { return m_nRows; }
   inline size_t ColCount() const { return m_nCols; }
   inline T *Data() { return m_Array; }
+  inline const T *Data() const { return m_Array; }
   inline T *Swap() { return m_SwapArray; }
 };
 
 /**
- * Dynamic size container.
+ * @brief Dynamic size container.
  *
  * In the Rows_/Cols_ parameter pass zero or Mtx::Dynamic.
  * There is no bound check, this class is suppose to be used by the MatrixBase and Matrix classes.
+ *
+ * @tparam T
  */
 template <typename T> class Container<T, MtxDynamic, MtxDynamic> {
 protected:
@@ -61,7 +68,7 @@ protected:
   size_t m_nSize = 0; // Container size (m_nRows * m_nCols).
 
   /**
-   * Delete and set to nullptr the Array and SwapArray.
+   * @brief Delete and set to nullptr the Array and SwapArray.
    */
   void Dealloc() {
     if (m_Array != nullptr) {
@@ -74,7 +81,7 @@ protected:
   }
 
   /**
-   * Allocate the Array and SwapArray.
+   * @brief Allocate the Array and SwapArray.
    * The array size is m_nSize (m_nRow * m_nCol).
    * The swap array size is the biggest value between "m_nRow and m_nCol".
    *
@@ -93,6 +100,8 @@ public:
   Container() = default;
   Container(size_t nRows, size_t nCols) { Resize(nRows, nCols); }
 
+  ~Container() { Dealloc(); }
+
   T &operator[](size_t nIndex) { return m_Array[nIndex]; }
   T &operator[](size_t nIndex) const { return m_Array[nIndex]; }
 
@@ -100,15 +109,18 @@ public:
   inline size_t RowCount() const { return m_nRows; }
   inline size_t ColCount() const { return m_nCols; }
   inline T *Data() { return m_Array; }
+  inline const T *Data() const { return m_Array; }
   inline T *Swap() { return m_SwapArray; }
 
   /**
-   * Resizes the container by nRows * nCols.
+   * @brief Resizes the container by nRows * nCols.
    * It deallocates the array by calling Dealloc, reassign the variables m_nRows, m_nCols, m_nSize
    * and then reallocates it by calling Alloc.
    *
    * @see Dealloc
    * @see Alloc
+   * @param nRows
+   * @param nCols
    */
   void Resize(size_t nRows, size_t nCols) {
     if (nRows == m_nRows && nCols == m_nCols)

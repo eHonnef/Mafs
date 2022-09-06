@@ -5,6 +5,7 @@ set(TESTFILES        # All .cpp files in tests/
   main.cpp
   Matrix/MatrixBaseTest.cpp
   Matrix/MatrixTest.cpp
+  Matrix/Operations/MatrixBasicOperationsTest.cpp
   # Matrix/Basic_op_test.cpp
 )
 
