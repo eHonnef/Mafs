@@ -1,16 +1,10 @@
 #ifndef MAFS_MATRIXCONTAINER_H
 #define MAFS_MATRIXCONTAINER_H
 
+#include <Mafs/Matrix/MatrixDataTypes.hpp>
 #include <stddef.h>
 
-namespace Mafs {
-
-enum MtxType {
-  MtxDynamic = 0 // Use this on Row_/Col_ template parameter to make the matrix dynamic
-};
-
-namespace Internal {
-
+namespace Mafs::Internal {
 template <typename T, size_t Rows_, size_t Cols_> class Container;
 
 /**
@@ -136,7 +130,6 @@ public:
     }
   }
 };
-}; // namespace Internal
-}; // namespace Mafs
+}; // namespace Mafs::Internal
 
 #endif // MAFS_MATRIXCONTAINER_H

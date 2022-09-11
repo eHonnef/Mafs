@@ -1,18 +1,22 @@
 #ifndef MAFS_MATRIX_CUDA_OPERATIONS_H
 #define MAFS_MATRIX_CUDA_OPERATIONS_H
 
-// #include <Mafs/Matrix/MatrixBase.hpp>
-#include <type_traits>
+#include <Mafs/Matrix/Operations/BaseOperations.hpp>
+#define UNUSED(x) (void)(x) //@todo: remove
 
 namespace Mafs::Internal {
-class CudaMatrixOperations {
+class CudaMatrixOperations : BaseMatrixOperations {
 public:
-  // template <class T, class U>
-  // auto Sum(const MatrixBase<T> &lMatrix, const MatrixBase<U> &rMatrix)
-  //     -> MatrixBase<decltype(std::declval<T &>() + std::declval<U &>())>;
-  // template <class T, class U> void InplaceSum(MatrixBase<T> &lMatrix, const MatrixBase<U> &rMatrix);
-};
+  CudaMatrixOperations() = default;
 
+  template <typename Derived, typename OtherDerived>
+  auto Sum(const MatrixBase<Derived> &lMatrix, const MatrixBase<OtherDerived> &rMatrix) -> Derived {
+    //@todo: this function
+    UNUSED(rMatrix);
+    Derived MatrixRtn(lMatrix);
+    return MatrixRtn;
+  }
+};
 }; // namespace Mafs::Internal
 
 #endif // MAFS_MATRIX_CUDA_OPERATIONS_H

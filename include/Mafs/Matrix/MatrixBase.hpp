@@ -5,25 +5,7 @@
 #include <Mafs/Utils/Utils.hpp>
 #include <fmt/core.h>
 
-namespace Mafs {
-
-/**
- * @brief Matrix options bitmask.
- * Use as follow: int Options = MtxColMajor
- *
- * The default value is:
- * MtxDefaultOptions = MtxRowMajor
- */
-enum MtxOptions {
-  //@todo melhorar a forma de fazer esse bitmask
-  // Matrix storage type, use only one
-  MtxRowMajor = 0, // Stores the matrix as row major.
-  MtxColMajor = 1, // Stores the matrix as col major.
-  // Default options for the Matrix (RowMajor).
-  MtxDefaultOptions = (0 | MtxRowMajor),
-};
-
-namespace Internal {
+namespace Mafs::Internal {
 template <typename T> struct MatrixTraits;
 
 /**
@@ -328,7 +310,6 @@ public:
                        m_Container.RowCount(), m_Container.ColCount(), strOptions, strData);
   }
 };
-}; // namespace Internal
-}; // namespace Mafs
+}; // namespace Mafs::Internal
 
 #endif // MAFS_MATRIXBASE_H

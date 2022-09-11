@@ -7,72 +7,42 @@
 #include <stdexcept>
 #include <type_traits>
 
-namespace Mafs {
+namespace Mafs::Internal {
 
-/* Enum MtxOpMode
- * Contains the operations mode. Eg.: use cuda, parallel(openmp), basic...
- * Basically, list every class above.
+/**
+ * @brief Static class that contains the basic operations for the Matrix.
+ * @todo: write this comment
+ *
  */
-enum MtxOperationMode {
-  // Matrix operations mode
-  MtxOpBasic = 0,
-  MtxOpCuda = 1
-};
-
-#ifndef MAFS_MATRIX_OPERATION_MODE
-#define MAFS_MATRIX_OPERATION_MODE MtxOpBasic
-#endif
-
-namespace Internal {
-template <size_t OperationMode_> class MatrixOperations {
+static class MatrixOperations {
 protected:
-  enum { m_OpMode = OperationMode_ };
+  enum { m_OpMode = MAFS_MATRIX_OPERATION_MODE };
 
-  union uOperations {
-    BasicMatrixOperations OpBasic;
-    CudaMatrixOperations OpCuda;
+  union {
+    BasicMatrixOperations BasicOperations{};
+    CudaMatrixOperations CudaOperations;
   };
 
-public:
-  template <typename Derived, typename OtherDerived>
-  auto Sum(const MatrixBase<Derived> &lMatrix, const MatrixBase<OtherDerived> &rMatrix) -> Derived {
-
-    //@todo: make a static condition if both matrices are static
-    if (lMatrix.RowCount() != rMatrix.RowCount() || lMatrix.ColCount() != rMatrix.ColCount())
-      throw std::domain_error(fmt::format(
-          "RowCount and ColCount must be equal. lMatrix[{}][{}] / rMatrix[{}][{}]",
-          lMatrix.RowCount(), lMatrix.ColCount(), rMatrix.RowCount(), rMatrix.ColCount()));
-
-    Derived MatrixRtn(lMatrix);
-    for (size_t i = 0; i < rMatrix.RowCount(); ++i)
-      for (size_t j = 0; j < rMatrix.ColCount(); ++j)
-        MatrixRtn(i, j) += rMatrix(i, j);
-
-    return MatrixRtn;
+  constexpr auto Operations() {
+    if constexpr (AreEnumsEqual<m_OpMode, MtxOpCuda>())
+      return CudaOperations;
+    else
+      return BasicOperations;
   }
 
-  // template <typename Derived, typename OtherDerived>
-  // bool Equals(const MatrixBase<Derived> &lMatrix, const MatrixBase<OtherDerived> &rMatrix) {
-  //   return true;
-  // }
+public:
+  MatrixOperations() = default;
 
-  // template <class T, class U>
-  // auto Sum(const MatrixBase<T> &lMatrix, const MatrixBase<U> &rMatrix)
-  //     -> MatrixBase<decltype(std::declval<T &>() + std::declval<U &>())> {
-  //   // switch (m_OpMode) {
-  //   // case MtxOpBasic:
-  //   //   return uOperations::OpBasic.Sum(lMatrix, rMatrix);
-  //   // case MtxOpCuda:
-  //   //   return uOperations::OpCuda.Sum(lMatrix, rMatrix);
-  //   // default:
-  //   //   break;
-  //   // }
-  // }
-};
+  template <typename Derived, typename OtherDerived>
+  auto Sum(const MatrixBase<Derived> &lMatrix, const MatrixBase<OtherDerived> &rMatrix) -> Derived {
+    return Operations().Sum(lMatrix, rMatrix);
+  }
 
-// extern MatrixOperations<MAFS_MATRIX_OPERATION_MODE> operationk;
-
-}; // namespace Internal
-}; // namespace Mafs
+  template <typename Derived, typename OtherDerived>
+  bool Equals(const MatrixBase<Derived> &lMatrix, const MatrixBase<OtherDerived> &rMatrix) {
+    return true;
+  }
+} MtxOperation; // Static instantiation of MtxOperation
+};              // namespace Mafs::Internal
 
 #endif // MAFS_MATRIXOPERATIONS_H
